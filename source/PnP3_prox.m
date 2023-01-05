@@ -1,4 +1,4 @@
-function [U, out] = PnP3(A,R,b,n,opts)
+function [U, out] = PnP3_prox(A,R,b,n,opts)
 
 
 % Written by Toby Sanders @Lickenbrock Tech.
@@ -49,12 +49,16 @@ n = p*q*r;
 % check that A* is true adjoint of A
 % check scaling of parameters, maximum constraint value, etc.
 if ~isa(A,'function_handle'), A = @(u,mode) f_handleA(A,u,mode); end
-[flg,~,~] = check_D_Dt(@(u)A(u,1),@(u)A(u,2),[n,1]);
+flg = check_D_Dt(@(u)A(u,1),@(u)A(u,2),[n,1]);
 if ~flg, error('A and A* do not appear consistent'); end; clear flg;
 
 % rescale so that gradient step length is just 1
-[A,b,~] = ScaleA(n,A,b); 
-
+% [A,b,~] = ScaleA(n,A,b); 
+[tau,out.tauStuff] = getStepLength(A,n);
+A = @(x,mode)A(x,mode)*sqrt(tau);
+b = b*sqrt(tau);
+tau = 1;
+% tau = tau*.95;
 
 % initialize everything else
 Atb = A(b,2); % A'*b
@@ -68,7 +72,7 @@ Up = U;
 ii = 0;  % main loop
 while ii < opts.iter % iterations refers to outer loops
     ii = ii + 1;
-    tau = 1;
+    % tau = 1;
     
     alpha = (ii-1)/(ii+2);
     Z = U + alpha*(U-Up);
@@ -76,7 +80,12 @@ while ii < opts.iter % iterations refers to outer loops
     g = reshape((A(A(Z(:),1),2)-Atb),p,q,r);
     V = Z - tau*g;
     Up = U;
-    U = R(real(V),opts.sigma0*sqrt(tau));
+
+    if ii==1
+        sclInOut = max(V(:))*2;
+    end
+
+    U = R(real(V)/sclInOut,opts.sigma0*sqrt(tau))*sclInOut;
 
     rel_chg = myrel(U,Up);
     out.rel_chg = [out.rel_chg;rel_chg];
