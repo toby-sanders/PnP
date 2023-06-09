@@ -50,7 +50,7 @@ n = p*q*r;
 % check that A* is true adjoint of A
 % check scaling of parameters, maximum constraint value, etc.
 if ~isa(A,'function_handle'), A = @(u,mode) f_handleA(A,u,mode); end
-[flg,~,~] = check_D_Dt(@(u)A(u,1),@(u)A(u,2),[n,1]);
+[flg,~] = check_D_Dt(@(u)A(u,1),@(u)A(u,2),[n,1]);
 if ~flg, error('A and A* do not appear consistent'); end; clear flg;
 [~,~,scl] = ScaleA(n,A,b);
 % [~,scl] = Scaleb(b);
